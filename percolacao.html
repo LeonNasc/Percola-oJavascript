@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --grid-cols: 1;
+            --grid-rows: 1;
+        }
+
+        #grid {
+            display: grid;
+            border: 5px;
+            grid-template-rows: repeat(var(--grid-rows), 1fr);
+            grid-template-columns: repeat(var(--grid-cols), 1fr);
+        }
+
+        .grid-item {
+            font-size: 0.4em;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="cabeçalho" class="display-1">
+        Simulador de Percolação
+    </div>
+    <hr>
+
+    <h6>Probabilidade de abertura da célula?</h6>
+    <span id="prob_vis"> 0.68 </span>
+    <br>
+    <input id="#prob_perc" type="range" min=0 max=100 value=38 class="form-control" onmousemove="mostrar_valor()" />
+    <button onclick="generateRows()" class="btn btn-primary"> Gerar novas células</button>
+    <button onclick="BFS()" class="btn btn-primary"> Percolar</button>
+    <hr>
+    <div id="main_cont" style="max-width:100vw;border:5px solid">
+        <div id="grid" class="grid-container">
+
+        </div>
+    </div>
+</body>
+
+<script>
+    const container = document.getElementById("grid");
+    const janela = document.querySelector("#main_cont");
+    const gridSize = 128;
+
+    function generateRows() {
+        makeRows(gridSize, gridSize);
+        janela.style.borderColor = "gray"
+    }
+
+    function makeRows(rows, cols) {
+
+        container.innerHTML = "";
+
+        try {
+            var threshold = document.getElementById("#prob_perc").value / 100;
+        }
+        catch {
+            threshold = 0.5;
+        }
+
+        container.style.setProperty('--grid-rows', rows);
+        container.style.setProperty('--grid-cols', cols);
+        for (c = 0; c < (rows * cols); c++) {
+            let cell = document.createElement("div");
+            cell.id = "c_" + (c)
+            let prob = Math.random();
+            cell.style.backgroundColor = prob > threshold ? "#FFFFFF" : "#000000";
+            cell.style.color = prob > threshold ? "#FFFFFF" : "#000000";
+            cell.innerHTML = prob > threshold ? "a" : "b";
+            container.appendChild(cell).className = "grid-item";
+        };
+    };
+
+    window.onload = makeRows(gridSize, gridSize);
+
+    function BFS(grid, size = gridSize, visitados = new Set) {
+
+        if (grid == null || grid == undefined) {
+            grid = []
+            for(var i = 0, ll = gridSize; i!= ll; grid.push(container.childNodes[i++]));
+        }
+
+        if (VerificarCondicaoDeParada(grid, visitados))
+            return;
+
+        var a_visitar = new Set()
+
+        for (let item of grid) {
+            if (item != undefined) {
+                index = Number(item.id.split("_")[1])
+            }
+
+            if (isOpen(item)) {
+                let visitas = obterVizinhos(index)
+                a_visitar = uniao(a_visitar, new Set(visitas));
+                visitados.add(item);
+            }
+        }
+        a_visitar = diferenca(a_visitar, visitados);
+
+        colorirCelulas(visitados)
+
+        var novos = BFS(a_visitar, a_visitar.size, visitados);
+        return visitados;
+    }
+
+    function VerificarCondicaoDeParada(grid, visitados) {
+
+        try {
+            if (grid.size == 0)
+                return true;
+        }
+        catch {
+            if (grid.length == 0) {
+                return true;
+            }
+        }
+        if (ChecarPercolacao(visitados)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function colorirCelulas(path) {
+        path.forEach((v) => v.style.backgroundColor = "blue")
+        path.forEach((v) => v.style.color = "blue")
+    }
+
+    function ChecarPercolacao(path) {
+        var ultima_linha = (gridSize*gridSize) - gridSize;
+
+ 
+        for (let cell of path){
+            if(cell.id.split("_")[1] > ultima_linha){
+                janela.style.borderColor = "green";
+                return;
+            }
+        }
+
+        janela.style.borderColor = "red";
+    }
+
+    function obterVizinhos(index){
+        var left = (index) => index - 1 > 0 ? index - 1 : null;
+        var right = (index) => index + 1 < (gridSize * gridSize) - 1 ? index + 1 : null;
+        var down = (index) => index + gridSize < (gridSize * gridSize) - 1 ? index + gridSize : null;
+        var main_grid = container.childNodes;
+
+        return [main_grid[left(index)], main_grid[right(index)], main_grid[down(index)]].
+                    filter(c => c != null).
+                    filter(c => isOpen(c))
+    }
+
+    function isOpen(cell) {
+        if (cell) {
+            let valida = cell.innerHTML == "a";
+            return valida;
+        }
+        return false;
+    }
+
+    function uniao(setA, setB) {
+        var _uniao = new Set(setA);
+        for (var elem of setB) {
+            _uniao.add(elem);
+        }
+        return _uniao;
+    }
+    function diferenca(setA, setB) {
+        var _diferenca = new Set(setA);
+        for (var elem of setB) {
+            _diferenca.delete(elem);
+        }
+        return _diferenca;
+    }
+
+    function mostrar_valor(){
+        var threshold = document.getElementById("#prob_perc").value / 100;
+        document.querySelector("#prob_vis").innerText = 1 - threshold;
+    }
+</script>
+
+</html>

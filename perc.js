@@ -1,4 +1,4 @@
-const container = document.getElementById("grid");
+    const container = document.getElementById("grid");
     const janela = document.querySelector("#main_cont");
     const gridSize = 128;
 
@@ -102,12 +102,13 @@ const container = document.getElementById("grid");
     }
 
     function obterVizinhos(index){
-        var left = (index) => index - 1 > 0 ? index - 1 : null;
-        var right = (index) => index + 1 < (gridSize * gridSize) - 1 ? index + 1 : null;
+        var left = (index) => ((index - 1) % gridSize) != 0 ? index - 1 : null;
+        var right = (index) => ((index + 1) % gridSize) != 0 ? index + 1 : null;
         var down = (index) => index + gridSize < (gridSize * gridSize) - 1 ? index + gridSize : null;
+        var up = (index) => index - gridSize > 0 ? index - gridSize : null;
         var main_grid = container.childNodes;
 
-        return [main_grid[left(index)], main_grid[right(index)], main_grid[down(index)]].
+        return [main_grid[left(index)], main_grid[right(index)], main_grid[down(index)], main_grid[up(index)]].
                     filter(c => c != null).
                     filter(c => isOpen(c))
     }
